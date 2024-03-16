@@ -204,32 +204,32 @@ class RIDG(Algorithm):
 
     def update(self, minibatches, unlabeled=None):
         all_x = torch.cat([x for x,y in minibatches])
-	all_y = torch.cat([y for x,y in minibatches])
-	features = self.featurizer(all_x)
-	logits = self.predict(all_x)
-	rational = torch.zeros(self.num_classes, all_x.shape[0], self.featurizer.n_outputs, device='cuda')
-	for i in range(self.num_classes):
-	    rational[i] = (self.classifier.weight[i] * features)
+        all_y = torch.cat([y for x,y in minibatches])
+        features = self.featurizer(all_x)
+        logits = self.predict(all_x)
+        rational = torch.zeros(self.num_classes, all_x.shape[0], self.featurizer.n_outputs, device='cuda')
+        for i in range(self.num_classes):
+            rational[i] = (self.classifier.weight[i] * features)
 
-	classes = torch.unique(all_y)
-	loss_rational = 0
-	for i in range(classes.shape[0]):
-	    rational_mean = rational[:, all_y==classes[i]].mean(dim=1)
-	    if self.init[classes[i]]:
-	        self.rational_bank[classes[i]] = rational_mean
-		self.init[classes[i]] = False
-	    else:
-		self.rational_bank[classes[i]] = (1 - self.hparams['momentum']) * self.rational_bank[classes[i]] + \
-						self.hparams['momentum'] * rational_mean
-	    loss_rational += ((rational[:, all_y==classes[i]] - (self.rational_bank[classes[i]].unsqueeze(1)).detach())**2).sum(dim=2).mean()
-	loss = F.cross_entropy(logits, all_y)
-	loss += self.hparams['ridg_reg'] * loss_rational
+        classes = torch.unique(all_y)
+        loss_rational = 0
+        for i in range(classes.shape[0]):
+            rational_mean = rational[:, all_y==classes[i]].mean(dim=1)
+            if self.init[classes[i]]:
+                self.rational_bank[classes[i]] = rational_mean
+            self.init[classes[i]] = False
+            else:
+            self.rational_bank[classes[i]] = (1 - self.hparams['momentum']) * self.rational_bank[classes[i]] + \
+                            self.hparams['momentum'] * rational_mean
+            loss_rational += ((rational[:, all_y==classes[i]] - (self.rational_bank[classes[i]].unsqueeze(1)).detach())**2).sum(dim=2).mean()
+        loss = F.cross_entropy(logits, all_y)
+        loss += self.hparams['ridg_reg'] * loss_rational
 
-	self.optimizer.zero_grad()
-	loss.backward()
-	self.optimizer.step()
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-	return {'loss': loss.item()}
+        return {'loss': loss.item()}
 
     def predict(self, x):
 	z = self.featurizer(x)
