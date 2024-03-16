@@ -217,7 +217,7 @@ class RIDG(Algorithm):
             rational_mean = rational[:, all_y==classes[i]].mean(dim=1)
             if self.init[classes[i]]:
                 self.rational_bank[classes[i]] = rational_mean
-            self.init[classes[i]] = False
+                self.init[classes[i]] = False
             else:
             self.rational_bank[classes[i]] = (1 - self.hparams['momentum']) * self.rational_bank[classes[i]] + \
                             self.hparams['momentum'] * rational_mean
